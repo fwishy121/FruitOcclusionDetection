@@ -47,8 +47,11 @@ def detect_and_display():
         # Kiểm tra nếu có bounding box
         if result.boxes is not None:
             for box in result.boxes:
-                x1, y1, x2, y2 = map(int, box.xyxy[0])  # Tọa độ góc trên trái và dưới phải
                 conf = float(box.conf[0])  # Độ tin cậy của dự đoán
+                if conf < 0.6:
+                    continue  # Bỏ qua các dự đoán có độ tin cậy < 0.6
+
+                x1, y1, x2, y2 = map(int, box.xyxy[0])  # Tọa độ góc trên trái và dưới phải
                 cls = int(box.cls[0])  # Lớp dự đoán
 
                 # Tăng bộ đếm loại trái cây
@@ -94,7 +97,7 @@ result_frame = tk.Frame(root)
 result_frame.pack(pady=10, padx=10)
 
 # Khởi tạo mô hình YOLO
-model_path = './runs/best.pt'
+model_path = 'C:/Study/TLCN/FruitOcclusionDetection/runs/detect/train14/weights/best.pt'
 model = YOLO(model_path)
 
 # Chạy giao diện người dùng
