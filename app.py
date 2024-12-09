@@ -1,9 +1,9 @@
-import tkinter as tk
 from collections import Counter
-from tkinter import filedialog
 
 import cv2
-from PIL import Image, ImageTk
+import numpy as np
+import streamlit as st
+from PIL import Image
 from ultralytics import YOLO
 
 
@@ -21,21 +21,29 @@ def preprocess_image(image_path):
     return img_blur
 
 # Hàm phát hiện và hiển thị kết quả
-def detect_and_display():
-    # Chọn tệp ảnh
-    file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg *.jpeg *.png")])
-    if not file_path:
-        return  # Thoát nếu không chọn tệp
+def detect_and_display(image_file):
+    # Đọc ảnh từ Streamlit uploader (PIL)
+    image = Image.open(image_file)
+
+    # Chuyển đổi ảnh PIL sang numpy array (OpenCV yêu cầu)
+    img_np = np.array(image)
+
+    # Chuyển từ RGB sang BGR (OpenCV yêu cầu BGR)
+    img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+
+    # Lưu ảnh tạm thời
+    temp_path = "temp/temp_uploaded_image.jpg"
+    cv2.imwrite(temp_path, img_bgr)
 
     # Tiền xử lý ảnh
-    processed_img = preprocess_image(file_path)
+    processed_img = preprocess_image(temp_path)
 
     # Lưu ảnh đã tiền xử lý tạm thời
-    temp_path = "temp_processed_image.jpg"
-    cv2.imwrite(temp_path, processed_img)
+    temp_path_processed = "temp/temp_processed_image.jpg"
+    cv2.imwrite(temp_path_processed, processed_img)
 
     # Thực hiện phát hiện đối tượng
-    results = model(temp_path)
+    results = model(temp_path_processed)
 
     # Tạo bộ đếm để đếm số lượng từng loại trái cây
     fruit_counter = Counter()
@@ -64,41 +72,33 @@ def detect_and_display():
                 cv2.putText(img, label, (x1, y1 - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-    # Hiển thị ảnh đã xử lý trên giao diện
+    # Chuyển ảnh OpenCV sang PIL để hiển thị trong Streamlit
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_pil = Image.fromarray(img_rgb)
-    img_tk = ImageTk.PhotoImage(img_pil)
 
-    canvas.create_image(0, 0, anchor=tk.NW, image=img_tk)
-    canvas.image = img_tk  # Lưu tham chiếu để tránh bị xóa
+    # Hiển thị ảnh đầu vào và ảnh kết quả
+    st.subheader("Input Image")
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
-    # Cập nhật thông tin kết quả lên giao diện
-    for widget in result_frame.winfo_children():
-        widget.destroy()  # Xóa các widget cũ trong frame kết quả
+    st.subheader("Processed Image with Detection Results")
+    st.image(img_pil, caption="Detected Fruits", use_column_width=True)
 
-    tk.Label(result_frame, text="Detection Results:", font=("Arial", 14, "bold")).pack(anchor="w")
+    # Hiển thị kết quả đếm trái cây
+    st.subheader("Detection Results:")
     for fruit, count in fruit_counter.items():
-        tk.Label(result_frame, text=f"{fruit}: {count}", font=("Arial", 12)).pack(anchor="w")
+        st.write(f"{fruit}: {count}")
 
-# Tạo giao diện người dùng
-root = tk.Tk()
-root.title("Fruit Detection")
+# Tạo giao diện Streamlit
+st.title("Fruit Detection with YOLO11")
 
-# Khung chứa ảnh
-canvas = tk.Canvas(root, width=640, height=640)
-canvas.pack(pady=10)
+# Upload ảnh từ người dùng
+image_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
-# Nút chọn ảnh
-btn_select_image = tk.Button(root, text="Select Image", command=detect_and_display, font=("Arial", 14))
-btn_select_image.pack(pady=10)
+# Kiểm tra nếu người dùng đã tải lên ảnh
+if image_file is not None:
+    # Khởi tạo mô hình YOLO
+    model_path = 'yolo11x.pt'  # Đảm bảo đường dẫn chính xác
+    model = YOLO(model_path)
 
-# Frame hiển thị kết quả
-result_frame = tk.Frame(root)
-result_frame.pack(pady=10, padx=10)
-
-# Khởi tạo mô hình YOLO
-model_path = 'yolo11x.pt'
-model = YOLO(model_path)
-
-# Chạy giao diện người dùng
-root.mainloop()
+    # Phát hiện và hiển thị kết quả
+    detect_and_display(image_file)
