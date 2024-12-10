@@ -97,7 +97,7 @@ image_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 # Kiểm tra nếu người dùng đã tải lên ảnh
 if image_file is not None:
     # Khởi tạo mô hình YOLO
-    model_path = 'yolo11x.pt'  # Đảm bảo đường dẫn chính xác
+    model_path = './runs/detect/train14/weights/best.pt'  # Đảm bảo đường dẫn chính xác
     model = YOLO(model_path)
 
     # Phát hiện và hiển thị kết quả

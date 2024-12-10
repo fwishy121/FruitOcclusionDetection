@@ -97,7 +97,7 @@ result_frame = tk.Frame(root)
 result_frame.pack(pady=10, padx=10)
 
 # Khởi tạo mô hình YOLO
-model_path = 'yolo11x.pt'
+model_path = './runs/detect/train14/weights/best.pt'
 model = YOLO(model_path)
 
 # Chạy giao diện người dùng
